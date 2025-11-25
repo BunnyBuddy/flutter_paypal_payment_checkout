@@ -142,6 +142,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
               },
               onCloseWindow: (InAppWebViewController controller) {
                 widget.onCancel();
+                Navigator.of(context).pop();
               },
               onProgressChanged: (InAppWebViewController controller, int progress) {
                 setState(() {
@@ -181,9 +182,11 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       services.executePayment(executeUrl, payerID, accessToken).then(
         (id) {
           if (id['error'] == false) {
-            widget.onSuccess(id);
+            widget.onSuccess(id);    // send data to your Dart code
+            Navigator.of(context).pop();   // CLOSE the PayPal WebView
           } else {
             widget.onError(id);
+            Navigator.of(context).pop();
           }
         },
       );
