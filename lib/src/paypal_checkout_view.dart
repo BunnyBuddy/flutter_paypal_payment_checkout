@@ -7,10 +7,13 @@ import 'package:flutter_paypal_payment/src/paypal_service.dart';
 class PaypalCheckoutView extends StatefulWidget {
   final Function onSuccess, onCancel, onError;
   final String? note, clientId, secretKey;
+  final String? returnUrl;
+  final String? cancelUrl;
 
   final Widget? loadingIndicator;
   final List? transactions;
   final bool? sandboxMode;
+
   const PaypalCheckoutView({
     Key? key,
     required this.onSuccess,
@@ -21,6 +24,8 @@ class PaypalCheckoutView extends StatefulWidget {
     required this.secretKey,
     this.sandboxMode = false,
     this.note = '',
+    this.returnUrl,
+    this.cancelUrl,
     this.loadingIndicator,
   }) : super(key: key);
 
@@ -41,9 +46,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
   late PaypalServices services;
   int pressed = 0;
   double progress = 0;
-  final String returnURL =
-      'https://www.youtube.com/channel/UC9a1yj1xV2zeyiFPZ1gGYGw';
-  final String cancelURL = 'https://www.facebook.com/tharwat.samy.9';
+  late final String returnURL;
+  late final String cancelURL;
 
   late InAppWebViewController webView;
 
@@ -53,13 +57,19 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       "payer": {"payment_method": "paypal"},
       "transactions": widget.transactions,
       "note_to_payer": widget.note,
-      "redirect_urls": {"return_url": returnURL, "cancel_url": cancelURL}
+      "redirect_urls": {
+        "return_url": returnURL,
+        "cancel_url": cancelURL,
+      }
     };
     return temp;
   }
 
   @override
   void initState() {
+    returnURL = widget.returnUrl!;
+    cancelURL = widget.cancelUrl!;
+
     services = PaypalServices(
       sandboxMode: widget.sandboxMode!,
       clientId: widget.clientId!,
@@ -111,7 +121,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
               shouldOverrideUrlLoading: (controller, navigationAction) async {
                 final url = navigationAction.request.url;
 
-                if (url.toString().contains(returnURL)) {
+                if (url.toString().startsWith(returnURL)) {
                   exceutePayment(url, context);
                   return NavigationActionPolicy.CANCEL;
                 }
@@ -133,8 +143,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
               onCloseWindow: (InAppWebViewController controller) {
                 widget.onCancel();
               },
-              onProgressChanged:
-                  (InAppWebViewController controller, int progress) {
+              onProgressChanged: (InAppWebViewController controller, int progress) {
                 setState(() {
                   this.progress = progress / 100;
                 });
@@ -161,9 +170,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
             "Paypal Payment",
           ),
         ),
-        body: Center(
-            child:
-                widget.loadingIndicator ?? const CircularProgressIndicator()),
+        body: Center(child: widget.loadingIndicator ?? const CircularProgressIndicator()),
       );
     }
   }
