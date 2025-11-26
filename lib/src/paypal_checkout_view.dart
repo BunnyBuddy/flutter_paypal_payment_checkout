@@ -51,6 +51,22 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
 
   late InAppWebViewController webView;
 
+  bool _handledCancel = false;
+
+  void triggerCancel() {
+    if (_handledCancel) return;
+    _handledCancel = true;
+
+    widget.onCancel();
+
+    Future.microtask(() {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+
   Map getOrderParams() {
     Map<String, dynamic> temp = {
       "intent": "sale",
@@ -110,7 +126,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
         canPop: true,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) {
-            widget.onCancel();
+            // widget.onCancel();
+            triggerCancel();
           }
         },
         child: Scaffold(
@@ -133,7 +150,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                     return NavigationActionPolicy.CANCEL;
                   }
                   if (url.toString().contains(cancelURL)) {
-                    widget.onCancel();
+                    // widget.onCancel();
+                    triggerCancel();
                     return NavigationActionPolicy.CANCEL;
                   } else {
                     return NavigationActionPolicy.ALLOW;
@@ -144,7 +162,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                   webView = controller;
                 },
                 onCloseWindow: (InAppWebViewController controller) {
-                  widget.onCancel();
+                  // widget.onCancel();
+                  triggerCancel();
                   Navigator.of(context).pop();
                 },
                 onProgressChanged: (InAppWebViewController controller, int progress) {
@@ -179,7 +198,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
         canPop: true,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) {
-            widget.onCancel();
+            // widget.onCancel();
+            triggerCancel();
           }
         },
         child: Scaffold(
