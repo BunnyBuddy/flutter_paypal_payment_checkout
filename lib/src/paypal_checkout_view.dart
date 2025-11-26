@@ -106,74 +106,93 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
   @override
   Widget build(BuildContext context) {
     if (checkoutUrl != null) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: const Text(
-            "Paypal",
-          ),
-        ),
-        body: Stack(
-          children: <Widget>[
-            InAppWebView(
-              shouldOverrideUrlLoading: (controller, navigationAction) async {
-                final url = navigationAction.request.url;
-
-                if (url != null && url.host.contains("inspireuplift.com") && url.path.contains("/mobile/paypal/return")) {
-                  exceutePayment(url, context);
-                  return NavigationActionPolicy.CANCEL;
-                }
-                if (url.toString().contains(cancelURL)) {
-                  widget.onCancel();
-                  return NavigationActionPolicy.CANCEL;
-                } else {
-                  return NavigationActionPolicy.ALLOW;
-                }
-              },
-              initialUrlRequest: URLRequest(url: WebUri(checkoutUrl!)),
-              onWebViewCreated: (InAppWebViewController controller) {
-                webView = controller;
-              },
-              onCloseWindow: (InAppWebViewController controller) {
-                widget.onCancel();
-                Navigator.of(context).pop();
-              },
-              onProgressChanged: (InAppWebViewController controller, int progress) {
-                setState(() {
-                  this.progress = progress / 100;
-                });
-              },
-              onUpdateVisitedHistory: (controller, url, _) {
-                if (url != null && url.toString().contains(returnURL)) {
-                  exceutePayment(url, context);
-                  Navigator.pop(context);
-                }
-              },
+      return PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) {
+            widget.onCancel();
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            title: const Text(
+              "Paypal",
             ),
-            progress < 1
-                ? SizedBox(
-                    height: 3,
-                    child: LinearProgressIndicator(
-                      value: progress,
-                    ),
-                  )
-                : const SizedBox(),
-          ],
+          ),
+          body: Stack(
+            children: <Widget>[
+              InAppWebView(
+                shouldOverrideUrlLoading: (controller, navigationAction) async {
+                  final url = navigationAction.request.url;
+
+                  if (url != null && url.host.contains("inspireuplift.com") && url.path.contains("/mobile/paypal/return")) {
+                    exceutePayment(url, context);
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                  if (url.toString().contains(cancelURL)) {
+                    widget.onCancel();
+                    return NavigationActionPolicy.CANCEL;
+                  } else {
+                    return NavigationActionPolicy.ALLOW;
+                  }
+                },
+                initialUrlRequest: URLRequest(url: WebUri(checkoutUrl!)),
+                onWebViewCreated: (InAppWebViewController controller) {
+                  webView = controller;
+                },
+                onCloseWindow: (InAppWebViewController controller) {
+                  widget.onCancel();
+                  Navigator.of(context).pop();
+                },
+                onProgressChanged: (InAppWebViewController controller, int progress) {
+                  setState(() {
+                    this.progress = progress / 100;
+                  });
+                },
+                onUpdateVisitedHistory: (controller, url, _) {
+                  if (url != null && url.toString().contains(returnURL)) {
+                    exceutePayment(url, context);
+                    Navigator.pop(context);
+                  }
+                },
+                initialSettings: InAppWebViewSettings(
+                  useShouldOverrideUrlLoading: true,
+                ),
+              ),
+              progress < 1
+                  ? SizedBox(
+                      height: 3,
+                      child: LinearProgressIndicator(
+                        value: progress,
+                      ),
+                    )
+                  : const SizedBox(),
+            ],
+          ),
         ),
       );
     } else {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: const Text(
-            "Paypal Payment",
+      return PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) {
+            widget.onCancel();
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            title: const Text(
+              "Paypal",
+            ),
           ),
+          body: Center(child: widget.loadingIndicator ?? const CircularProgressIndicator()),
         ),
-        body: Center(child: widget.loadingIndicator ?? const CircularProgressIndicator()),
       );
     }
   }
