@@ -121,7 +121,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
               shouldOverrideUrlLoading: (controller, navigationAction) async {
                 final url = navigationAction.request.url;
 
-                if (url.toString().startsWith(returnURL)) {
+                if (url != null && url.host.contains("inspireuplift.com") && url.path.contains("/mobile/paypal/return")) {
                   exceutePayment(url, context);
                   return NavigationActionPolicy.CANCEL;
                 }
@@ -148,6 +148,12 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                 setState(() {
                   this.progress = progress / 100;
                 });
+              },
+              onUpdateVisitedHistory: (controller, url, _) {
+                if (url != null && url.toString().contains(returnURL)) {
+                  exceutePayment(url, context);
+                  Navigator.pop(context);
+                }
               },
             ),
             progress < 1
@@ -182,8 +188,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       services.executePayment(executeUrl, payerID, accessToken).then(
         (id) {
           if (id['error'] == false) {
-            widget.onSuccess(id);    // send data to your Dart code
-            Navigator.of(context).pop();   // CLOSE the PayPal WebView
+            widget.onSuccess(id); // send data to your Dart code
+            Navigator.of(context).pop(); // CLOSE the PayPal WebView
           } else {
             widget.onError(id);
             Navigator.of(context).pop();
