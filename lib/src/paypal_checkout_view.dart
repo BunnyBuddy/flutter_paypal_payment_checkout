@@ -290,19 +290,24 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
   late InAppWebViewController webView;
 
   bool _handledCancel = false;
+  bool _handledSuccess = false;
 
   void triggerCancel() {
+    // Do NOT cancel if success already triggered
+    if (_handledSuccess) return;
     if (_handledCancel) return;
+
     _handledCancel = true;
 
-    // cleanup callback (does NOT pop)
     widget.onCancel();
 
-    // close route, but after current event loop to avoid debugLocked
     Future.microtask(() {
-      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     });
   }
+
 
   Map getOrderParams() {
     // We'll pass application_context via transactions[0]['appContext']
@@ -378,7 +383,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       return PopScope(
         canPop: true,
         onPopInvokedWithResult: (didPop, result) {
-          if (didPop) {
+          if (didPop && !_handledSuccess) {
             triggerCancel();
           }
         },
@@ -406,7 +411,11 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                       // capture the order
                       final captureRes = await services.executePayment(orderId, accessToken);
                       if (captureRes['error'] == false) {
-                        widget.onSuccess(captureRes);
+                        if (!_handledSuccess) {
+                          _handledSuccess = true;
+                          widget.onSuccess(captureRes);
+                        }
+
                       } else {
                         widget.onError(captureRes);
                       }
@@ -447,7 +456,11 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                     if (orderId != null && orderId.isNotEmpty) {
                       final captureRes = await services.executePayment(orderId, accessToken);
                       if (captureRes['error'] == false) {
-                        widget.onSuccess(captureRes);
+                        if (!_handledSuccess) {
+                          _handledSuccess = true;
+                          widget.onSuccess(captureRes);
+                        }
+
                       } else {
                         widget.onError(captureRes);
                       }
@@ -473,7 +486,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       return PopScope(
         canPop: true,
         onPopInvokedWithResult: (didPop, result) {
-          if (didPop) {
+          if (didPop && !_handledSuccess) {
             triggerCancel();
           }
         },
