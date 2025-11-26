@@ -112,7 +112,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
           elevation: 0,
           centerTitle: true,
           title: const Text(
-            "Paypal Payment",
+            "Paypal",
           ),
         ),
         body: Stack(
@@ -126,17 +126,13 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                   return NavigationActionPolicy.CANCEL;
                 }
                 if (url.toString().contains(cancelURL)) {
+                  widget.onCancel();
                   return NavigationActionPolicy.CANCEL;
                 } else {
                   return NavigationActionPolicy.ALLOW;
                 }
               },
               initialUrlRequest: URLRequest(url: WebUri(checkoutUrl!)),
-              // initialOptions: InAppWebViewGroupOptions(
-              //   crossPlatform: InAppWebViewOptions(
-              //     useShouldOverrideUrlLoading: true,
-              //   ),
-              // ),
               onWebViewCreated: (InAppWebViewController controller) {
                 webView = controller;
               },
@@ -189,10 +185,10 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
         (id) {
           if (id['error'] == false) {
             widget.onSuccess(id); // send data to your Dart code
-            Navigator.of(context).pop(); // CLOSE the PayPal WebView
+            // Navigator.of(context).pop(); // CLOSE the PayPal WebView
           } else {
             widget.onError(id);
-            Navigator.of(context).pop();
+            // Navigator.of(context).pop();
           }
         },
       );
