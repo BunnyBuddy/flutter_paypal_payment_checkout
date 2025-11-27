@@ -385,7 +385,10 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
         canPop: !_locked,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop && !_handledSuccess) {
-            triggerCancel();
+            // triggerCancel();
+            if (_handledCancel) return;
+            _handledCancel = true;
+            widget.onCancel();
           }
         },
         child: Scaffold(
@@ -484,6 +487,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                 },
                 initialSettings: InAppWebViewSettings(
                   useShouldOverrideUrlLoading: true,
+                  clearSessionCache: true,
                 ),
               ),
               if (progress < 1)
