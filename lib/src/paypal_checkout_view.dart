@@ -291,6 +291,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
 
   bool _handledCancel = false;
   bool _handledSuccess = false;
+  bool _locked = false;
 
   void triggerCancel() {
     // Do NOT cancel if success already triggered
@@ -381,7 +382,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
   Widget build(BuildContext context) {
     if (checkoutUrl != null) {
       return PopScope(
-        canPop: true,
+        canPop: !_locked,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop && !_handledSuccess) {
             triggerCancel();
@@ -389,6 +390,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
         },
         child: Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: !_locked,
             backgroundColor: Colors.transparent,
             elevation: 0,
             centerTitle: true,
@@ -437,6 +439,14 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                   }
 
                   return NavigationActionPolicy.ALLOW;
+                },
+                /// BLOCK BACK AFTER PAY CLICK
+                onLoadStop: (controller, url) {
+                  if (url != null && url.toString().contains("useraction=commit")) {
+                    // PayPal enters final "processing…" screen
+                    _locked = true;
+                    setState(() {});
+                  }
                 },
                 initialUrlRequest: URLRequest(url: WebUri(checkoutUrl!)),
                 onWebViewCreated: (InAppWebViewController controller) {
