@@ -69,7 +69,6 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
     });
   }
 
-
   Map getOrderParams() {
     // We'll pass application_context via transactions[0]['appContext']
     // to keep compatibility with the earlier createPaypalPayment signature.
@@ -92,7 +91,14 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       };
     } else {
       // Fallback empty transaction with appContext
-      return {'transactions': [ {'amount': {'total': '0.00', 'currency': 'USD'}, 'appContext': appContext } ]};
+      return {
+        'transactions': [
+          {
+            'amount': {'total': '0.00', 'currency': 'USD'},
+            'appContext': appContext
+          }
+        ]
+      };
     }
   }
 
@@ -179,7 +185,6 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                           _handledSuccess = true;
                           widget.onSuccess(captureRes);
                         }
-
                       } else {
                         widget.onError(captureRes);
                       }
@@ -202,6 +207,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
 
                   return NavigationActionPolicy.ALLOW;
                 },
+
                 /// BLOCK BACK AFTER PAY CLICK
                 onLoadStop: (controller, url) {
                   if (url != null && url.toString().contains("useraction=commit")) {
@@ -232,7 +238,6 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                           _handledSuccess = true;
                           widget.onSuccess(captureRes);
                         }
-
                       } else {
                         widget.onError(captureRes);
                       }
@@ -247,10 +252,11 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                 initialSettings: InAppWebViewSettings(
                   useShouldOverrideUrlLoading: true,
                   clearSessionCache: true,
+                  clearCache: true,
+                  cacheEnabled: false,
                 ),
               ),
-              if (progress < 1)
-                SizedBox(height: 3, child: LinearProgressIndicator(value: progress))
+              if (progress < 1) SizedBox(height: 3, child: LinearProgressIndicator(value: progress))
             ],
           ),
         ),
