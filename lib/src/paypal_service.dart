@@ -14,7 +14,7 @@ class PaypalServices {
   Future<Map> getAccessToken() async {
     String baseUrl = sandboxMode
         ? "https://api-m.sandbox.paypal.com"
-        : "https://api.paypal.com";
+        : "https://api-m.paypal.com";
 
     try {
       var authToken = base64.encode(
