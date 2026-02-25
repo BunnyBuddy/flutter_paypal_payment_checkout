@@ -12,12 +12,15 @@ The **Flutter PayPal Payment Package** provides an easy-to-integrate solution fo
 
 ## Installation
 
-To install the Flutter PayPal Payment Package, follow these steps
+To install the Flutter PayPal Payment Checkout Package, follow these steps
 
 1. Add the package to your project's dependencies in the `pubspec.yaml` file:
    ```yaml
    dependencies:
-     flutter_paypal_payment: ^1.0.7
+      flutter_paypal_payment:
+         git:
+            url: https://github.com/BunnyBuddy/flutter_paypal_payment_checkout
+            ref: main
     ``` 
 2. Run the following command to fetch the package:
 
@@ -26,82 +29,68 @@ To install the Flutter PayPal Payment Package, follow these steps
     ``` 
 
 ## Usage
-1. Import the package into your Dart file:
+1. Import the package:
 
     ``` 
     import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
     ```
-2. Navigate to the PayPal checkout view with the desired configuration:
+2. Navigate to the PayPal checkout screen:
 ```dart
- Navigator.of(context).push(MaterialPageRoute(
-                  builder: (BuildContext context) => PaypalCheckoutView(
-                    sandboxMode: true,
-                    clientId: "",
-                    secretKey: "",
-                    transactions: const [
-                      {
-                        "amount": {
-                          "total": '70',
-                          "currency": "USD",
-                          "details": {
-                            "subtotal": '70',
-                            "shipping": '0',
-                            "shipping_discount": 0
-                          }
-                        },
-                        "description": "The payment transaction description.",
-                        // "payment_options": {
-                        //   "allowed_payment_method":
-                        //       "INSTANT_FUNDING_SOURCE"
-                        // },
-                        "item_list": {
-                          "items": [
-                            {
-                              "name": "Apple",
-                              "quantity": 4,
-                              "price": '5',
-                              "currency": "USD"
-                            },
-                            {
-                              "name": "Pineapple",
-                              "quantity": 5,
-                              "price": '10',
-                              "currency": "USD"
-                            }
-                          ],
 
-                          // shipping address is not required though
-                          //   "shipping_address": {
-                          //     "recipient_name": "tharwat",
-                          //     "line1": "Alexandria",
-                          //     "line2": "",
-                          //     "city": "Alexandria",
-                          //     "country_code": "EG",
-                          //     "postal_code": "21505",
-                          //     "phone": "+00000000",
-                          //     "state": "Alexandria"
-                          //  },
-                        }
-                      }
-                    ],
-                    note: "Contact us for any questions on your order.",
-                    onSuccess: (Map params) async {
-                      print("onSuccess: $params");
-                    },
-                    onError: (error) {
-                      print("onError: $error");
-                      Navigator.pop(context);
-                    },
-                    onCancel: () {
-                      print('cancelled:');
-                    },
-                  ),
-                ));
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => PaypalCheckoutView(
+      sandboxMode: true, // set false for production
+      clientId: "YOUR_PAYPAL_CLIENT_ID",
+      secretKey: "YOUR_PAYPAL_SECRET_KEY",
+
+      returnUrl: "https://example.com/paypal/return",
+      cancelUrl: "https://example.com/paypal/cancel",
+
+      note: "Order payment",
+
+      transactions: [
+        {
+          "amount": {
+            "total": "50.00",
+            "currency": "USD",
+            "details": {
+              "subtotal": "50.00",
+              "shipping": "0",
+              "shipping_discount": 0
+            }
+          },
+          "description": "Example order payment",
+
+          // Optional: provide shipping address
+          "shipping_address": {
+            "recipient_name": "John Doe",
+            "line1": "123 Main Street",
+            "line2": "Apt 4B",
+            "city": "New York",
+            "state": "NY",
+            "postal_code": "10001",
+            "country_code": "US",
+            "phone": "+11234567890"
+          },
+
+          "shipping_preference": "SET_PROVIDED_ADDRESS"
+        }
+      ],
+
+      onSuccess: (Map params) async {
+        print("Payment success: $params");
+      },
+
+      onError: (error) {
+        print("Payment error: $error");
+      },
+
+      onCancel: () {
+        print("Payment cancelled");
+      },
+    ),
+  ),
+);
 ``` 
-## ⚡ Donate 
-
-If you would like to support me, please consider making a donation through one of the following links:
-
-* [PayPal](https://paypal.me/itharwat)
-
-Thank you for your support!
