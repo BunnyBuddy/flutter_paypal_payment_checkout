@@ -12,12 +12,9 @@ class PaypalServices {
     required this.sandboxMode,
   });
 
-  String get baseUrl => sandboxMode
-      ? "https://api-m.sandbox.paypal.com"
-      : "https://api-m.paypal.com";
+  String get baseUrl => sandboxMode ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
 
   Future<Map> getAccessToken() async {
-
     try {
       var authToken = base64.encode(
         utf8.encode("$clientId:$secretKey"),
@@ -41,7 +38,6 @@ class PaypalServices {
 
   /// Creates an order (v2) and returns { "approveUrl": "...", "orderId": "..." }
   Future<Map> createPaypalPayment(dynamic transactionsPayload, String accessToken) async {
-
     try {
       // Build purchase_units from the incoming transactions.
       // Expect transactionsPayload to be a List with one entry containing amount.total and details.
@@ -149,7 +145,6 @@ class PaypalServices {
 
   /// Capture an order by orderId (v2)
   Future<Map> executePayment(String orderId, String accessToken) async {
-
     try {
       final response = await Dio().post('$baseUrl/v2/checkout/orders/$orderId/capture', options: Options(headers: {'Authorization': 'Bearer $accessToken', 'Content-Type': 'application/json'}));
 
@@ -179,9 +174,11 @@ class PaypalServices {
       data: {
         "plan_id": planId,
         "application_context": {
+          "brand_name": "Inspire Uplift LLC",
           "return_url": returnUrl,
           "cancel_url": cancelUrl,
-          "user_action": "SUBSCRIBE_NOW"
+          "user_action": "SUBSCRIBE_NOW",
+          "shipping_preference": "NO_SHIPPING",
         }
       },
       options: Options(headers: {
@@ -198,8 +195,7 @@ class PaypalServices {
     };
   }
 
-  Future<Map?> getSubscriptionDetails(
-      String subscriptionId, String accessToken) async {
+  Future<Map?> getSubscriptionDetails(String subscriptionId, String accessToken) async {
     final res = await Dio().get(
       '$baseUrl/v1/billing/subscriptions/$subscriptionId',
       options: Options(headers: {
@@ -210,8 +206,7 @@ class PaypalServices {
     return res.data;
   }
 
-  Future<void> cancelSubscription(
-      String subscriptionId, String accessToken) async {
+  Future<void> cancelSubscription(String subscriptionId, String accessToken) async {
     await Dio().post(
       '$baseUrl/v1/billing/subscriptions/$subscriptionId/cancel',
       data: {"reason": "User requested"},
