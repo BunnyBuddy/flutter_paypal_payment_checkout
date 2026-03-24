@@ -179,6 +179,9 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
             children: <Widget>[
               InAppWebView(
                 shouldOverrideUrlLoading: (controller, navigationAction) async {
+                  if (_handledSuccess || _handledCancel) {
+                    return NavigationActionPolicy.CANCEL;
+                  }
                   final url = navigationAction.request.url;
                   if (url == null) return NavigationActionPolicy.ALLOW;
 
@@ -200,7 +203,10 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                       //   }
                       // } // OLD
                       if (captureRes['error'] == false && captureRes['data']?['status'] == 'COMPLETED') {
-                        widget.onSuccess(captureRes);
+                        if (!_handledSuccess) {
+                          _handledSuccess = true;
+                          widget.onSuccess(captureRes);
+                        }
                       } // NEW
 
                       else {
@@ -218,7 +224,9 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                   }
 
                   // Cancel URL handling
-                  if (urlStr.contains(cancelURL)) {
+                  // if (urlStr.contains(cancelURL)) { // OLD
+                  if (url.host == Uri.parse(cancelURL).host) {
+                    // NEW
                     triggerCancel();
                     return NavigationActionPolicy.CANCEL;
                   }
@@ -246,27 +254,27 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                     progress = prog / 100;
                   });
                 },
-                onUpdateVisitedHistory: (controller, url, _) async {
-                  if (url != null && url.toString().contains(returnURL)) {
-                    final orderId = url.queryParameters['token'] ?? url.queryParameters['orderId'] ?? url.queryParameters['paymentId'];
-                    if (orderId != null && orderId.isNotEmpty) {
-                      final captureRes = await services.executePayment(orderId, accessToken);
-                      if (captureRes['error'] == false) {
-                        if (!_handledSuccess) {
-                          _handledSuccess = true;
-                          widget.onSuccess(captureRes);
-                        }
-                      } else {
-                        widget.onError(captureRes);
-                      }
-                    } else {
-                      widget.onError('No order token found in return URL.');
-                    }
-                    Future.microtask(() {
-                      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-                    });
-                  }
-                },
+                // onUpdateVisitedHistory: (controller, url, _) async {
+                //   if (url != null && url.toString().contains(returnURL)) {
+                //     final orderId = url.queryParameters['token'] ?? url.queryParameters['orderId'] ?? url.queryParameters['paymentId'];
+                //     if (orderId != null && orderId.isNotEmpty) {
+                //       final captureRes = await services.executePayment(orderId, accessToken);
+                //       if (captureRes['error'] == false) {
+                //         if (!_handledSuccess) {
+                //           _handledSuccess = true;
+                //           widget.onSuccess(captureRes);
+                //         }
+                //       } else {
+                //         widget.onError(captureRes);
+                //       }
+                //     } else {
+                //       widget.onError('No order token found in return URL.');
+                //     }
+                //     Future.microtask(() {
+                //       if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+                //     });
+                //   }
+                // },
                 initialSettings: InAppWebViewSettings(
                   useShouldOverrideUrlLoading: true,
                   clearSessionCache: true,
