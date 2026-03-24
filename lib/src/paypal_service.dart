@@ -5,16 +5,18 @@ import 'dart:async';
 class PaypalServices {
   final String clientId, secretKey;
   final bool sandboxMode;
+
   PaypalServices({
     required this.clientId,
     required this.secretKey,
     required this.sandboxMode,
   });
 
+  String get baseUrl => sandboxMode
+      ? "https://api-m.sandbox.paypal.com"
+      : "https://api-m.paypal.com";
+
   Future<Map> getAccessToken() async {
-    String baseUrl = sandboxMode
-        ? "https://api-m.sandbox.paypal.com"
-        : "https://api-m.paypal.com";
 
     try {
       var authToken = base64.encode(
@@ -24,44 +26,24 @@ class PaypalServices {
         '$baseUrl/v1/oauth2/token',
         data: 'grant_type=client_credentials',
         options: Options(
-          headers: {
-            'Authorization': 'Basic $authToken',
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
+          headers: {'Authorization': 'Basic $authToken', 'Content-Type': 'application/x-www-form-urlencoded'},
         ),
       );
 
       final body = response.data;
-      return {
-        'error': false,
-        'message': "Success",
-        'token': body["access_token"]
-      };
+      return {'error': false, 'message': "Success", 'token': body["access_token"]};
     } on DioException catch (e) {
-      return {
-        'error': true,
-        'message': "Your PayPal credentials seem incorrect",
-        'data': e.response?.data
-      };
+      return {'error': true, 'message': "Your PayPal credentials seem incorrect", 'data': e.response?.data};
     } catch (e) {
-      return {
-        'error': true,
-        'message': "Unable to proceed, check your internet connection.",
-        'data': e.toString()
-      };
+      return {'error': true, 'message': "Unable to proceed, check your internet connection.", 'data': e.toString()};
     }
   }
 
   /// Creates an order (v2) and returns { "approveUrl": "...", "orderId": "..." }
   Future<Map> createPaypalPayment(dynamic transactionsPayload, String accessToken) async {
-    // transactionsPayload is the same widget.transactions you pass in.
-    // We'll convert it into v2 purchase_units below.
-    String domain = sandboxMode
-        ? "https://api-m.sandbox.paypal.com"
-        : "https://api-m.paypal.com";
 
     try {
-      // Build purchase_units from the incoming transactions (best-effort mapping).
+      // Build purchase_units from the incoming transactions.
       // Expect transactionsPayload to be a List with one entry containing amount.total and details.
       List purchaseUnits = [];
       if (transactionsPayload is List && transactionsPayload.isNotEmpty) {
@@ -84,17 +66,8 @@ class PaypalServices {
         if (t['shipping_address'] != null) {
           final s = t['shipping_address'];
           shipping = {
-            'name': {
-              'full_name': s['recipient_name'] ?? ''
-            },
-            'address': {
-              'address_line_1': s['line1'] ?? '',
-              'address_line_2': s['line2'] ?? '',
-              'admin_area_2': s['city'] ?? '',
-              'admin_area_1': s['state'] ?? '',
-              'postal_code': s['postal_code'] ?? '',
-              'country_code': s['country_code'] ?? ''
-            }
+            'name': {'full_name': s['recipient_name'] ?? ''},
+            'address': {'address_line_1': s['line1'] ?? '', 'address_line_2': s['line2'] ?? '', 'admin_area_2': s['city'] ?? '', 'admin_area_1': s['state'] ?? '', 'postal_code': s['postal_code'] ?? '', 'country_code': s['country_code'] ?? ''}
           };
         }
 
@@ -138,13 +111,10 @@ class PaypalServices {
             }
       };
 
-      final response = await Dio().post('$domain/v2/checkout/orders',
+      final response = await Dio().post('$baseUrl/v2/checkout/orders',
           data: jsonEncode(body),
           options: Options(
-            headers: {
-              'Authorization': 'Bearer $accessToken',
-              'Content-Type': 'application/json'
-            },
+            headers: {'Authorization': 'Bearer $accessToken', 'Content-Type': 'application/json'},
           ));
 
       final resBody = response.data;
@@ -153,8 +123,13 @@ class PaypalServices {
       String approveUrl = '';
       if (resBody['links'] != null && resBody['links'] is List) {
         final links = List.from(resBody['links']);
-        final item = links.firstWhere((l) => l['rel'] == 'approve', orElse: () => null);
-        if (item != null) approveUrl = item['href'];
+        final item = links.cast<Map>().firstWhere(
+              (l) => l['rel'] == 'approve',
+              orElse: () => {},
+            );
+
+        if (item.isEmpty) throw Exception("No approve url");
+        approveUrl = item['href'];
       }
 
       return {'orderId': resBody['id'], 'approveUrl': approveUrl};
@@ -174,16 +149,9 @@ class PaypalServices {
 
   /// Capture an order by orderId (v2)
   Future<Map> executePayment(String orderId, String accessToken) async {
-    String domain = sandboxMode
-        ? "https://api-m.sandbox.paypal.com"
-        : "https://api-m.paypal.com";
 
     try {
-      final response = await Dio().post('$domain/v2/checkout/orders/$orderId/capture',
-          options: Options(headers: {
-            'Authorization': 'Bearer $accessToken',
-            'Content-Type': 'application/json'
-          }));
+      final response = await Dio().post('$baseUrl/v2/checkout/orders/$orderId/capture', options: Options(headers: {'Authorization': 'Bearer $accessToken', 'Content-Type': 'application/json'}));
 
       final body = response.data;
       return {'error': false, 'message': 'Success', 'data': body};
@@ -196,5 +164,60 @@ class PaypalServices {
     } catch (e) {
       return {'error': true, 'message': e.toString()};
     }
+  }
+
+  // ------------------ SUBSCRIPTIONS ------------------
+
+  Future<Map?> createSubscription({
+    required String planId,
+    required String accessToken,
+    required String returnUrl,
+    required String cancelUrl,
+  }) async {
+    final res = await Dio().post(
+      '$baseUrl/v1/billing/subscriptions',
+      data: {
+        "plan_id": planId,
+        "application_context": {
+          "return_url": returnUrl,
+          "cancel_url": cancelUrl,
+          "user_action": "SUBSCRIBE_NOW"
+        }
+      },
+      options: Options(headers: {
+        'Authorization': 'Bearer $accessToken',
+      }),
+    );
+
+    final links = res.data['links'] as List;
+    final approve = links.firstWhere((e) => e['rel'] == 'approve');
+
+    return {
+      "id": res.data['id'],
+      "approveUrl": approve['href'],
+    };
+  }
+
+  Future<Map?> getSubscriptionDetails(
+      String subscriptionId, String accessToken) async {
+    final res = await Dio().get(
+      '$baseUrl/v1/billing/subscriptions/$subscriptionId',
+      options: Options(headers: {
+        'Authorization': 'Bearer $accessToken',
+      }),
+    );
+
+    return res.data;
+  }
+
+  Future<void> cancelSubscription(
+      String subscriptionId, String accessToken) async {
+    await Dio().post(
+      '$baseUrl/v1/billing/subscriptions/$subscriptionId/cancel',
+      data: {"reason": "User requested"},
+      options: Options(headers: {
+        'Authorization': 'Bearer $accessToken',
+      }),
+    );
   }
 }

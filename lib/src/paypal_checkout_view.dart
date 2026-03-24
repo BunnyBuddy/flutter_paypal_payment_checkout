@@ -6,7 +6,7 @@ import 'package:flutter_paypal_payment/src/paypal_service.dart';
 
 class PaypalCheckoutView extends StatefulWidget {
   final Function onSuccess, onCancel, onError;
-  final String? note, clientId, secretKey;
+  final String? note, clientId, secretKey, appName;
   final String? returnUrl;
   final String? cancelUrl;
 
@@ -22,6 +22,7 @@ class PaypalCheckoutView extends StatefulWidget {
     required this.transactions,
     required this.clientId,
     required this.secretKey,
+    required this.appName,
     this.sandboxMode = false,
     this.note = '',
     this.returnUrl,
@@ -74,6 +75,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
     // to keep compatibility with the earlier createPaypalPayment signature.
     // Build minimal payload: add appContext with shipping_preference + return/cancel
     final appContext = {
+      'brand_name': widget.appName,
       'shipping_preference': 'SET_PROVIDED_ADDRESS',
       'return_url': returnURL,
       'cancel_url': cancelURL,
@@ -104,6 +106,9 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
 
   @override
   void initState() {
+    super.initState();
+
+    assert(widget.returnUrl != null && widget.cancelUrl != null);
     returnURL = widget.returnUrl!;
     cancelURL = widget.cancelUrl!;
 
@@ -113,7 +118,6 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
       secretKey: widget.secretKey!,
     );
 
-    super.initState();
     Future.delayed(Duration.zero, () async {
       try {
         final tokenResult = await services.getAccessToken();
@@ -140,6 +144,13 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
         }
       } catch (e) {
         widget.onError(e);
+      }
+    });
+
+    Future.delayed(const Duration(minutes: 3), () {
+      if (!_handledSuccess && mounted) {
+        widget.onError("Payment timeout");
+        Navigator.pop(context);
       }
     });
   }
@@ -173,19 +184,26 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
 
                   final urlStr = url.toString();
 
-                  // PayPal returns token=ORDERID for v2
-                  if (urlStr.contains(returnURL)) {
+                  // PayPal returns token = Order Id for v2
+                  // if (urlStr.contains(returnURL)) { // OLD
+                  if (url.host == Uri.parse(returnURL).host) {
+                    // NEW
                     // extract token param (orderId)
                     final orderId = url.queryParameters['token'] ?? url.queryParameters['orderId'] ?? url.queryParameters['paymentId'];
                     if (orderId != null && orderId.isNotEmpty) {
                       // capture the order
                       final captureRes = await services.executePayment(orderId, accessToken);
-                      if (captureRes['error'] == false) {
-                        if (!_handledSuccess) {
-                          _handledSuccess = true;
-                          widget.onSuccess(captureRes);
-                        }
-                      } else {
+                      // if (captureRes['error'] == false) {
+                      //   if (!_handledSuccess) {
+                      //     _handledSuccess = true;
+                      //     widget.onSuccess(captureRes);
+                      //   }
+                      // } // OLD
+                      if (captureRes['error'] == false && captureRes['data']?['status'] == 'COMPLETED') {
+                        widget.onSuccess(captureRes);
+                      } // NEW
+
+                      else {
                         widget.onError(captureRes);
                       }
                     } else {
