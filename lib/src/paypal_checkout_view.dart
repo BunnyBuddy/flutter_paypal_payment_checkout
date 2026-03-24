@@ -209,9 +209,35 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                         }
                       } // NEW
 
+                      // else {
+                      //   widget.onError(captureRes);
+                      // } // OLD
                       else {
+                        final details = captureRes['data'];
+
+                        final issue = details?['details']?[0]?['issue'];
+
+                        if (issue == 'INSTRUMENT_DECLINED') {
+                          final links = details?['links'] ?? [];
+                          final redirect = links.firstWhere(
+                                (l) => l['rel'] == 'redirect',
+                            orElse: () => null,
+                          );
+
+                          if (redirect != null) {
+                            final redirectUrl = redirect['href'];
+
+                            // 🔥 reload PayPal approval
+                            await webView.loadUrl(
+                              urlRequest: URLRequest(url: WebUri(redirectUrl)),
+                            );
+
+                            return NavigationActionPolicy.CANCEL;
+                          }
+                        }
+
                         widget.onError(captureRes);
-                      }
+                      } // NEW
                     } else {
                       widget.onError('No order token found in return URL.');
                     }
