@@ -22,7 +22,7 @@ class PaypalCheckoutView extends StatefulWidget {
     required this.transactions,
     required this.clientId,
     required this.secretKey,
-    required this.appName,
+    this.appName,
     this.sandboxMode = false,
     this.note = '',
     this.returnUrl,
@@ -74,13 +74,23 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
     // We'll pass application_context via transactions[0]['appContext']
     // to keep compatibility with the earlier createPaypalPayment signature.
     // Build minimal payload: add appContext with shipping_preference + return/cancel
-    final appContext = {
-      'brand_name': widget.appName,
-      'shipping_preference': 'SET_PROVIDED_ADDRESS',
-      'return_url': returnURL,
-      'cancel_url': cancelURL,
-      'user_action': 'PAY_NOW' // or 'CONTINUE' - PAY_NOW shows Pay Now button
-    };
+
+    final appContext = widget.appName != null
+        ? {
+            'brand_name': widget.appName,
+            'shipping_preference': 'SET_PROVIDED_ADDRESS',
+            'return_url': returnURL,
+            'cancel_url': cancelURL,
+            'user_action': 'PAY_NOW' // or 'CONTINUE' - PAY_NOW shows Pay Now button
+          }
+        : {
+            'shipping_preference': 'SET_PROVIDED_ADDRESS',
+            'return_url': returnURL,
+            'cancel_url': cancelURL,
+            'user_action': 'PAY_NOW' // or 'CONTINUE' - PAY_NOW shows Pay Now button
+          };
+
+    /// I know the above looks stupid but whatever as long it works...
 
     // clone transactions so we can inject appContext into first transaction map
     if (widget.transactions != null && widget.transactions is List && widget.transactions!.isNotEmpty) {
@@ -220,7 +230,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                         if (issue == 'INSTRUMENT_DECLINED') {
                           final links = details?['links'] ?? [];
                           final redirect = links.firstWhere(
-                                (l) => l['rel'] == 'redirect',
+                            (l) => l['rel'] == 'redirect',
                             orElse: () => null,
                           );
 
