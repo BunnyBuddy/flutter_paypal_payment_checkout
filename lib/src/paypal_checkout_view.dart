@@ -1,5 +1,7 @@
 library flutter_paypal_checkout;
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_paypal_payment/src/paypal_service.dart';
@@ -195,49 +197,31 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                   final url = navigationAction.request.url;
                   if (url == null) return NavigationActionPolicy.ALLOW;
 
-                  final urlStr = url.toString();
-
                   // PayPal returns token = Order Id for v2
-                  // if (urlStr.contains(returnURL)) { // OLD
                   if (url.host == Uri.parse(returnURL).host) {
-                    // NEW
                     // extract token param (orderId)
                     final orderId = url.queryParameters['token'] ?? url.queryParameters['orderId'] ?? url.queryParameters['paymentId'];
                     if (orderId != null && orderId.isNotEmpty) {
                       // capture the order
                       final captureRes = await services.executePayment(orderId, accessToken);
-                      // if (captureRes['error'] == false) {
-                      //   if (!_handledSuccess) {
-                      //     _handledSuccess = true;
-                      //     widget.onSuccess(captureRes);
-                      //   }
-                      // } // OLD
                       if (captureRes['error'] == false && captureRes['data']?['status'] == 'COMPLETED') {
                         if (!_handledSuccess) {
                           _handledSuccess = true;
                           widget.onSuccess(captureRes);
                         }
-                      } // NEW
-
-                      // else {
-                      //   widget.onError(captureRes);
-                      // } // OLD
-                      else {
+                      } else {
                         final details = captureRes['data'];
-
                         final issue = details?['details']?[0]?['issue'];
-
                         if (issue == 'INSTRUMENT_DECLINED') {
                           final links = details?['links'] ?? [];
                           final redirect = links.firstWhere(
                             (l) => l['rel'] == 'redirect',
                             orElse: () => null,
                           );
-
                           if (redirect != null) {
                             final redirectUrl = redirect['href'];
 
-                            // 🔥 reload PayPal approval
+                            // reloading PayPal approval
                             await webView.loadUrl(
                               urlRequest: URLRequest(url: WebUri(redirectUrl)),
                             );
@@ -245,9 +229,8 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                             return NavigationActionPolicy.CANCEL;
                           }
                         }
-
                         widget.onError(captureRes);
-                      } // NEW
+                      }
                     } else {
                       widget.onError('No order token found in return URL.');
                     }
@@ -260,9 +243,7 @@ class PaypalCheckoutViewState extends State<PaypalCheckoutView> {
                   }
 
                   // Cancel URL handling
-                  // if (urlStr.contains(cancelURL)) { // OLD
                   if (url.host == Uri.parse(cancelURL).host) {
-                    // NEW
                     triggerCancel();
                     return NavigationActionPolicy.CANCEL;
                   }
