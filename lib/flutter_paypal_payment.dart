@@ -1,3 +1,4 @@
 library flutter_paypal_payment;
 
 export 'src/paypal_checkout_view.dart';
+export 'src/paypal_subscription_view.dart';
