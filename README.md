@@ -1,4 +1,3 @@
-
 # Flutter PayPal Payment Package
 
 The **Flutter PayPal Payment Package** provides an easy-to-integrate solution for enabling PayPal payments in your Flutter mobile application. This package allows for a seamless checkout experience with both sandbox and production environments.
@@ -94,3 +93,11 @@ Navigator.push(
   ),
 );
 ``` 
+
+## ⚡ Donate 
+
+If you would like to support me, please consider making a donation through one of the following links:
+
+* [PayPal](https://paypal.me/itharwat)
+
+Thank you for your support!
